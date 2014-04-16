@@ -26,7 +26,7 @@ enum { LVAL_NUM, LVAL_ERR, LVAL_SYM, LVAL_SEXPR };
 /* lval struct */
 typedef struct lval {
   int type;
-  long num;
+  double num;
   char *err; /* strings this time */
   char *sym;
   int count;
@@ -34,7 +34,7 @@ typedef struct lval {
 } lval;
 
 /* number type lval */
-lval *lval_num(long x) {
+lval *lval_num(double x) {
   lval *v = malloc(sizeof(lval));
   v->type = LVAL_NUM;
   v->num = x;
@@ -131,7 +131,7 @@ void lval_expr_print(lval *v, char open, char close) {
 void lval_print(lval *v) {
   switch (v->type) {
     /* just print the numeric value */
-    case LVAL_NUM:   printf("%li", v->num); break;
+    case LVAL_NUM:   printf("%f", v->num); break;
     case LVAL_ERR:   printf("Error: %s", v->err); break;
     case LVAL_SYM:   printf("%s", v->sym); break;
     case LVAL_SEXPR: lval_expr_print(v, '(', ')'); break;
@@ -170,7 +170,7 @@ lval *builtin_op(lval *a, char *op) {
         x = lval_err("Division by zero!");
         break;
       } x->num /= y->num; }
-    if (strcmp(op, "%") == 0) { x->num = x->num % y->num; }
+    if (strcmp(op, "%") == 0) { x->num = (int) x->num % (int) y->num; }
     if (strcmp(op, "^") == 0) { x->num = pow(x->num, y->num); }
 
     lval_del(y); /* delete element now finished with */
@@ -221,7 +221,7 @@ lval *lval_eval(lval *v) {
 
 lval *lval_read_num(mpc_ast_t *t) {
   errno = 0;
-  long x = strtol(t->contents, NULL, 10);
+  double x = strtod(t->contents, NULL);
   return errno != ERANGE ? lval_num(x) : lval_err("Invalid number");
 }
 
@@ -257,7 +257,7 @@ int main(int argc, char **argv) {
 
   mpca_lang(MPC_LANG_DEFAULT,
           " \
-          number    : /-?[0-9]+/; \
+          number    : /-?[0-9]+(\\.)?([0-9]+)?/; \
           symbol    : '+' | '-' | '*' | '/' | '%' | '^' ; \
           sexpr     : '(' <expr>* ')' ; \
           expr      : <number> | <symbol> | <sexpr> ; \
