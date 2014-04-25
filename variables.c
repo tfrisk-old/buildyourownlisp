@@ -52,7 +52,7 @@ struct lval {
   char *sym;
   lbuiltin fun;
   int count;
-  struct lval **cell;
+  lval **cell;
 };
 
 /* new environment */
@@ -437,10 +437,10 @@ lval *lval_eval_sexpr(lenv *e, lval *v) {
 
   /* ensure first element is symbol */
   lval *f = lval_pop(v, 0);
-  if (f->type != LVAL_SYM) {
+  if (f->type != LVAL_FUN) {
     lval_del(f);
     lval_del(v);
-    return lval_err("S-expression does not start with symbol!");
+    return lval_err("first element is not a function!");
   }
 
   /* call function to get result */
@@ -512,7 +512,7 @@ int main(int argc, char **argv) {
   puts("Lispy version 0.0.0.0.5");
   puts("Press Ctrl+C to Exit\n");
 
-  lenv *e = NULL;
+  lenv *e = lenv_new();
   lenv_add_builtins(e);
 
   while(1) {
