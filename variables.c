@@ -21,7 +21,12 @@ void add_history(char *unused);
 #endif
 
 /* macros */
-#define LASSERT(args, cond, err) if (!(cond)) { lval_del(args); return lval_err(err); }
+#define LASSERT(args, cond, fmt, ...) \
+  if (!(cond)) { \
+    lval *err = lval_err(fmt, ##__VA_ARGS__); \
+    lval_del(args); \
+    return err; \
+  }
 
 struct lval;
 struct lenv;
@@ -66,7 +71,7 @@ lenv *lenv_new(void) {
 
 void lval_del(lval *v);
 lval *lval_copy(lval *v);
-lval *lval_err(char *m);
+lval *lval_err(char *fmt, ...);
 
 /* delete environment */
 void lenv_del(lenv *e) {
@@ -89,7 +94,7 @@ lval *lenv_get(lenv *e, lval *k) {
     }
   }
   /* if no symbol matches */
-  return lval_err("Unbound symbol!");
+  return lval_err("Unbound symbol '%s'", k->sym);
 }
 
 /* add new value to environment */
@@ -122,11 +127,22 @@ lval *lval_num(double x) {
 }
 
 /* error type lval */
-lval *lval_err(char *m) {
+lval *lval_err(char *fmt, ...) {
   lval *v = malloc(sizeof(lval));
   v->type = LVAL_ERR;
-  v->err = malloc(strlen(m)+1);
-  strcpy(v->err, m);
+
+  /* create a va list and init it */
+  va_list va;
+  va_start(va, fmt);
+
+  v->err = malloc(512);
+
+  /* printf into the error string */
+  vsnprintf(v->err, 511, fmt, va);
+
+  /* realloc to number of bytes actually used */
+  v->err = realloc(v->err, strlen(v->err)+1);
+  va_end(va); /* cleanup out va list */
   return v;
 }
 
